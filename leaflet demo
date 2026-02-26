@@ -1,0 +1,42 @@
+install.packages('leaflet')
+library(leaflet)
+library(dplyr)
+
+uw_location_df <- data.frame(
+  lat = 47.6543238,
+  long = -122.30800
+)
+
+# Draw a circle at UW’s location
+leaflet(data = uw_location_df) |>
+  addProviderTiles("CartoDB.Positron") |>
+  setView(lng = -122.3321, lat = 47.6062, zoom = 10) |>
+  addCircleMarkers(
+    lat = ~lat,     
+    lng = ~long,
+    radius = 3
+  )
+
+# Load data downloaded from https://data.seattle.gov/Permitting/Building-Permits/76t5-zqzr
+all_permits <- read.csv("https://github.com/kylethayer/Info-201-au-24-datasets/raw/refs/heads/main/Building_Permits_20260226.csv")
+
+# Filter for permits for new buildings 
+# issued in 2010 or later
+new_buildings <- all_permits |>
+  filter(all_permits$IssuedDate != "")  |>
+  filter(
+    PermitTypeDesc == "New",
+    PermitClass != "N/A",
+    as.Date(IssuedDate) >= as.Date("2010-01-01") 
+  )
+
+# Create a Leaflet map, adding map tiles and circle markers
+leaflet(data = new_buildings) |>
+  addProviderTiles("CartoDB.Positron") |>
+  setView(lng = -122.3321, lat = 47.6062, zoom = 10) |>
+  addCircles(
+    lat = ~Latitude, 	
+    lng = ~Longitude,	
+    stroke = FALSE,  	
+    popup = ~Description 
+  )
