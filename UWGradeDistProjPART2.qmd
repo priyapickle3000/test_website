@@ -1,0 +1,348 @@
+---
+title: "UW Grade Distribution PT. 2"
+author: "Priya Devanesan"
+format:
+  html:
+   embed-resources: true
+editor: visual
+---
+
+```{r}
+ 
+#| warning: false
+
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+# Data from reddit user austingwalters in this reddit thread: https://www.reddit.com/r/udub/comments/4e6kxl/i_made_a_website_that_shows_grade_distributions/
+# Dataset and FOIA info from their dropbox: https://www.dropbox.com/scl/fo/8lbyazjlt5jmv86jvvs06/AGtgMaWeyZtZuS2fSYLYn_4?dl=0&e=1&rlkey=1sg7t372nhslxogwjl3e9lt9t
+
+uw_grades_original_df <- read.csv("https://raw.githubusercontent.com/kylethayer/Info-201-au-24-datasets/refs/heads/main/UW-Seattle_20110-20161-Course-Grade-Data_2016-04-06.csv", check.names=FALSE)
+ 
+# From Course_Number get program abbreviation (Program_Abv) and number (Course_Number_Num)
+# From Term get Term_Season
+uw_grades_df <- uw_grades_original_df |> 
+  mutate(
+    Program_Abv = str_split_i(Course_Number, " ", 1),
+    Course_Number_Num = as.integer(str_extract(Course_Number, "\\d+")),
+    Term_Season = str_extract(Term, "Autumn|Spring|Summer|Winter")
+  )
+```
+
+## Overall Grade Distribution Summary
+
+```{r}
+
+
+tot_courses <- 
+  uw_grades_df |>
+  nrow()
+
+avg_avg_gpa <- 
+  uw_grades_df |>
+  pull(Average_GPA) |>
+  mean(na.rm = TRUE)
+
+avg_class_size <- 
+  uw_grades_df |>
+  pull(Student_Count) |>
+  mean()
+
+min_course_num <-
+  uw_grades_df |>
+  pull(Course_Number_Num) |>
+  min()
+
+max_course_num <-
+  uw_grades_df |>
+  pull(Course_Number_Num) |>
+  max()
+
+```
+
+```{r}
+
+
+avg_gpa_hist <- 
+  uw_grades_df |>
+  ggplot() +
+  geom_histogram(mapping = aes(y = Average_GPA), binwidth = 0.1) + 
+  labs(
+    title = "Average GPA for All Courses",
+    x = "Average GPA",
+    y = "Count"
+  )
+
+avg_gpa_hist
+```
+
+```{r}
+
+
+avg_gpa_v_student_count <- 
+  uw_grades_df |>
+  ggplot() +
+  geom_point(mapping = aes(x = Student_Count, y = Average_GPA)) +
+  labs(
+    title = "Average GPA vs. Student Count",
+    x = "Student Count",
+    y = "Average GPA"
+  )
+
+avg_gpa_v_student_count
+```
+
+The total number of courses is `r tot_courses`. At a university this size, having over thirty thousand classes makes sense. There must be enough to accomodate our large student population. The average of the average class GPAs is `r round(avg_avg_gpa, digits = 2)`. This is a pretty great grade, much better than failing, if not quite at an A. Given the variety of types of classes, and the wildly varying levels of difficulty in each one, this makes sense. The average class size for all classes is `r round(avg_class_size, digits = 2)`. With a mix of small classrooms and big lecture halls on campus, 45 is just about where you would expect to see this average land. The minimum course number is `r min_course_num` and the maximum is `r max_course_num`. With undergraduates typically taking classes in the 100-400 levels, and graduate students generally sticking to the 500-700 levels, it makes sense that our university would have such a range.
+
+Looking at our two graphs, we can make some observations about general trends in grade outcomes at UW. Our first graph, "Average GPA for All Courses," just counts up the number of each average grade, and shows that an average grade of 3.5 is the most common outcome, with an undramatic slope down towards the higher and lower ends of the graph. Our second graph, "Average GPA vs. Student Count," reveals firstly that we have a lot more data for classes with 300 or less students. Surprisingly, despite common belief that smaller classes lead to better grades, we can see that the lowest average grades are actually found in classes below 100 students.
+
+## Comparison: Primary Instructor Shawn Wong vs. Primary Instructor Habiba Ibrahim
+
+```{r}
+
+wong_data <-
+  uw_grades_df |>
+  filter(Primary_Instructor == "WONG, SHAWN H")
+
+ibrahim_data <-
+  uw_grades_df |>
+  filter(Primary_Instructor == "IBRAHIM, HABIBA")
+```
+
+```{r}
+
+wong_courses_taught <- 
+  wong_data |> 
+  ncol()
+
+ibrahim_courses_taught <- 
+  ibrahim_data |> 
+  ncol()
+
+wong_avg_gpa <- 
+  wong_data |>
+  pull(Average_GPA) |>
+  mean()
+
+ibrahim_avg_gpa <- 
+  ibrahim_data |>
+  pull(Average_GPA) |>
+  mean()
+
+wong_class_size_avg <- 
+  wong_data |> 
+  pull(Student_Count) |>
+  mean()
+
+ibrahim_class_size_avg <- 
+  ibrahim_data |> 
+  pull(Student_Count) |>
+  mean()
+
+wong_hardest_class <- 
+  wong_data |> 
+  pull(Course_Number_Num) |>
+  max()
+
+ibrahim_hardest_class <- 
+  ibrahim_data |> 
+  pull(Course_Number_Num) |>
+  max()
+
+```
+
+```{r}
+
+wong_avg_gpa_hist <- 
+  wong_data |>
+  ggplot() +
+  geom_histogram(mapping = aes(x = Average_GPA), binwidth = 0.1) + 
+  labs(
+    title = "Average GPA for Shawn Wong's Classes",
+    x = "Average GPA",
+    y = "Count"
+  )
+
+wong_avg_gpa_hist
+```
+
+```{r}
+
+ibrahim_avg_gpa_hist <- 
+  ibrahim_data |>
+  ggplot() +
+  geom_histogram(mapping = aes(x = Average_GPA), binwidth = 0.1) + 
+  labs(
+    title = "Average GPA for Habiba Ibrahim's Classes",
+    x = "Average GPA",
+    y = "Count"
+  )
+
+ibrahim_avg_gpa_hist
+```
+
+```{r}
+
+
+wong_gpa_v_course_num <- 
+  wong_data |>
+  ggplot() +
+  geom_point(mapping = aes(x = Course_Number_Num, y = Average_GPA)) +
+  labs(
+    title = "Shawn Wong: Average GPA vs. Course Code",
+    x = "Course Code",
+    y = "Average GPA"
+  )
+
+wong_gpa_v_course_num
+```
+
+```{r}
+
+
+ibrahim_gpa_v_course_num <- 
+  ibrahim_data |>
+  ggplot() +
+  geom_point(mapping = aes(x = Course_Number_Num, y = Average_GPA)) +
+  labs(
+    title = "Habiba Ibrahim: Average GPA vs. Course Code",
+    x = "Course Code",
+    y = "Average GPA"
+  )
+
+ibrahim_gpa_v_course_num
+```
+
+Professor Shawn Wong and Professor Habiba Ibrahim are both English professors who I had my freshman year. During the period of this data collection, Prof. Wong taught `r wong_courses_taught` classes, and Prof. Ibrahim taught `r ibrahim_courses_taught` classes. As professors in similar standing, this uniformity makes sense. The overall average GPA for all of Wong's classes was `r round(wong_avg_gpa, digits = 2)`. The overall average GPA for all of Ibrahim's classes was `r round(ibrahim_avg_gpa, digits = 2)`. On average, Wong was teaching classes with `r round(wong_class_size_avg, digits = 2)` students, and Ibrahim was teaching classes with `r round(ibrahim_class_size_avg, digits = 2)` students. The difference in average GPA can be accounted for by these slightly smaller class sizes for Ibrahim. As we saw above, smaller classes generally correlate to worse average GPAs. The highest course code (and thus the highest level class) taught by Wong was `r wong_hardest_class`, while for Ibrahim it was `r ibrahim_hardest_class`. These are both 400 level classes, as both of these professors primarily teach undergrad, and rarely lead graduate seminars.
+
+The first pair of graphs compare overall average GPA counts for each professor. We can see here that Wong has a steady climb to 3.9, and a dramatic drop at 4.0. Ibrahim has no average GPAs between roughly 2.8 and 3.2, a large amount of 3.2 averages, and a good amount of 3.7. We can extrapolate that generally people either do really well or really poorly in Ibrahim's classes, while people generally do okay and mostly do very well in Wong's.
+
+The second graphs compare each professor's average GPAs to the level of the class that produced that GPA. We can see that students in Prof. Wong's classes tend to do equally well in easier and harder classes. It's a pretty even spread. For Prof. Ibrahim, students tend to do worse in upper 200 and upper 400 level classes, with the best grades in her 300 and early 200 level classes.
+
+## Comparison: Autumn Quarter Grades vs. Winter Quarter Grades
+
+```{r}
+
+fall_data <-
+  uw_grades_df |>
+  filter(Term_Season == "Autumn")
+
+wint_data <-
+  uw_grades_df |>
+  filter(Term_Season == "Winter")
+```
+
+```{r}
+fall_avg_gpa <- 
+  fall_data |> 
+  pull(Average_GPA) |>
+  mean(na.rm = TRUE)
+
+wint_avg_gpa <- 
+  wint_data |> 
+  pull(Average_GPA) |>
+  mean()
+
+fall_total_student_count <- 
+  fall_data |>
+  pull(Student_Count) |>
+  sum()
+
+wint_total_student_count <- 
+  wint_data |>
+  pull(Student_Count) |>
+  sum()
+
+fall_avg_class_size <- 
+  fall_data |>
+  pull(Student_Count) |>
+  mean()
+
+wint_avg_class_size <- 
+  wint_data |>
+  pull(Student_Count) |>
+  mean()
+
+fall_lowest_course_offered <- 
+  fall_data |>
+  pull(Course_Number_Num) |>
+  min()
+
+wint_lowest_course_offered <- 
+  wint_data |>
+  pull(Course_Number_Num) |>
+  min()
+```
+
+```{r}
+
+fall_course_offered_hist <- 
+  fall_data |>
+  ggplot() +
+  geom_histogram(mapping = aes(x = Course_Number_Num), binwidth = 0.1) + 
+  labs(
+    title = "Course Levels Offered in Autumn Quarter",
+    x = "Course Codes",
+    y = "Count"
+  )
+
+fall_course_offered_hist
+```
+
+```{r}
+
+wint_course_offered_hist <- 
+  wint_data |>
+  ggplot() +
+  geom_histogram(mapping = aes(x = Course_Number_Num), binwidth = 0.1) + 
+  labs(
+    title = "Course Levels Offered in Winter Quarter",
+    x = "Course Codes",
+    y = "Count"
+  )
+
+wint_course_offered_hist
+```
+
+```{r}
+
+
+fall_gpa_v_course_num <- 
+  fall_data |>
+  ggplot() +
+  geom_point(mapping = aes(x = Course_Number_Num, y = Average_GPA)) +
+  labs(
+    title = "Autumn Quarter: Average GPA vs. Course Code",
+    x = "Course Code",
+    y = "Average GPA"
+  )
+
+fall_gpa_v_course_num
+```
+
+```{r}
+
+
+wint_gpa_v_course_num <- 
+  wint_data |>
+  ggplot() +
+  geom_point(mapping = aes(x = Course_Number_Num, y = Average_GPA)) +
+  labs(
+    title = "Winter Quarter: Average GPA vs. Course Code",
+    x = "Course Code",
+    y = "Average GPA"
+  )
+
+wint_gpa_v_course_num
+```
+
+The average GPA in Autumn Quarter is `r round(fall_avg_gpa, digits = 2)`, and in Winter is `r round(wint_avg_gpa, digits = 2)`. The total amount of students during this data collection period who were in classes during Autumn Quarter was `r fall_total_student_count`, and in Winter was `r wint_total_student_count`. This data reflects a sum of several years worth of quarters. It also includes duplicate students as many students take more than one course, and this number is found through summing class sizes. Still, it's significant that numbers drop by \~25,000 from Autumn to Winter, perhaps showing that people transfer out, drop out, or graduate before Winter. The average class size in Autumn is `r round(fall_avg_class_size, digits = 2)`, and in Winter is `r round(wint_avg_class_size, digits = 2)`. The lowest course by course code offered in Autumn is `r fall_lowest_course_offered`, and in Winter is also `r wint_lowest_course_offered`. Thus we see that, besides overall number of students enrolled, stats stay pretty steady between Winter and Autumn quarters.
+
+In our first pair of graphs, we can see a general mapping of the number of courses offered in different course codes between Autumn and Winter quarter. Generally they are the same, with a pretty even spread of classes offered up until the 600 level. Autumn has two spikes, one in the 100s level and one in the 300s level. As Autumn is the first quarter of the year, it makes sense that there would be more lower level classes and prerequisites offered.
+
+In our second pair of graphs, we see average GPA mapped against course code for each quarter. The graphs look pretty similar, with the lowest grades in lower level classes and higher grades generally in higher level classes. This is pretty interesting, as generally we expect higher level courses to be more difficult to pass. One subtle difference between the two graphs can be seen in slightly more low grades between 400 and 600 level classes for Winter. As Winter is shorter, darker, and generally considered more demoralizing, this makes sense.
+
+## Conclusion
+
+Overall, I have discovered that differences between professors and differences between quarters are subtle but present. Still, further data is probably necessary to make any strong claims one way or another.
